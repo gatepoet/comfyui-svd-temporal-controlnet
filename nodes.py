@@ -17,6 +17,8 @@ class SVDTemporalControlnet:
             "width": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 8}),
             "height": ("INT", {"default": 512, "min": 64, "max": 4096, "step": 8}),
             "seed": ("INT", {"default": 123,"min": 0, "max": 0xffffffffffffffff, "step": 1}),
+            "min_guidance_scale": ("FLOAT", {"default": 1.0, "min": 0.01, "max": 100.0, "step": 0.01}),
+            "max_guidance_scale": ("FLOAT", {"default": 3.0, "min": 0.01, "max": 100.0, "step": 0.01}),
             "steps": ("INT", {"default": 20, "min": 1, "max": 4096, "step": 1}),
             "motion_bucket_id": ("INT", {"default": 100, "min": 1, "max": 4096, "step": 1}),
             "fps_id": ("INT", {"default": 7, "min": 1, "max": 100, "step": 1}),
@@ -31,39 +33,40 @@ class SVDTemporalControlnet:
 
     CATEGORY = "SVDTemporalControlnet"
 
-    def process(self, init_image, control_frames, width, height, seed, steps, motion_bucket_id, fps_id, noise_aug_strength, controlnet_cond_scale):
+    def process(self, init_image, control_frames, width, height, seed, steps, min_guidance_scale, max_guidance_scale, motion_bucket_id, fps_id, noise_aug_strength, controlnet_cond_scale):
         torch.manual_seed(seed)
         num_frames = control_frames.shape[0]
         init_image = init_image.permute(0, 3, 1, 2)  # Rearrange the tensor from [B, H, W, C] to [B, C, H, W]
         control_frames = control_frames.permute(0, 3, 1, 2)
 
-        # Load SVD checkpoint
-        checkpoint_path = os.path.join(script_directory, "../../models/diffusers/stable-video-diffusion-img2vid")
-        if os.path.exists(checkpoint_path):
-            checkpoint_path = checkpoint_path
-        else:
-            try:
-                from huggingface_hub import snapshot_download
-                snapshot_download(repo_id="stabilityai/stable-video-diffusion-img2vid", allow_patterns=["*.json","*fp16*"], local_dir=checkpoint_path, local_dir_use_symlinks=False)
-            except:
-                raise FileNotFoundError("No SVD model found.")
+        if not hasattr(self, 'pipeline'):
+            # Load SVD checkpoint
+            checkpoint_path = os.path.join(script_directory, "../../models/diffusers/stable-video-diffusion-img2vid")
+            if os.path.exists(checkpoint_path):
+                checkpoint_path = checkpoint_path
+            else:
+                try:
+                    from huggingface_hub import snapshot_download
+                    snapshot_download(repo_id="stabilityai/stable-video-diffusion-img2vid", allow_patterns=["*.json","*fp16*"], local_dir=checkpoint_path, local_dir_use_symlinks=False)
+                except:
+                    raise FileNotFoundError("No SVD model found.")
+                
+            # Load ControlNet checkpoint
+            controlnet_path = os.path.join(script_directory, "../../models/diffusers/temporal-controlnet-depth-svd-v1")   
+            if os.path.exists(controlnet_path):
+                controlnet_path = controlnet_path
+            else:
+                try:
+                    from huggingface_hub import snapshot_download
+                    snapshot_download(repo_id="CiaraRowles/temporal-controlnet-depth-svd-v1", local_dir=controlnet_path, local_dir_use_symlinks=False)
+                except:
+                    raise FileNotFoundError("No controlnet model found.")
             
-        # Load ControlNet checkpoint
-        controlnet_path = os.path.join(script_directory, "../../models/diffusers/temporal-controlnet-depth-svd-v1")   
-        if os.path.exists(controlnet_path):
-            controlnet_path = controlnet_path
-        else:
-            try:
-                from huggingface_hub import snapshot_download
-                snapshot_download(repo_id="CiaraRowles/temporal-controlnet-depth-svd-v1", local_dir=controlnet_path, local_dir_use_symlinks=False)
-            except:
-                raise FileNotFoundError("No controlnet model found.")
-        
-        # Load and set up the pipeline
-        controlnet = ControlNetSDVModel.from_pretrained(controlnet_path,subfolder="controlnet", torch_dtype=torch.float16)
-        unet = UNetSpatioTemporalConditionControlNetModel.from_pretrained(checkpoint_path, subfolder="unet", torch_dtype=torch.float16, variant="fp16")
-        pipeline = StableVideoDiffusionPipelineControlNet.from_pretrained(checkpoint_path,controlnet=controlnet,unet=unet, torch_dtype=torch.float16, variant="fp16")
-        pipeline.enable_model_cpu_offload()
+            # Load and set up the pipeline
+            controlnet = ControlNetSDVModel.from_pretrained(controlnet_path,subfolder="controlnet", torch_dtype=torch.float16)
+            unet = UNetSpatioTemporalConditionControlNetModel.from_pretrained(checkpoint_path, subfolder="unet", torch_dtype=torch.float16, variant="fp16")
+            pipeline = StableVideoDiffusionPipelineControlNet.from_pretrained(checkpoint_path,controlnet=controlnet,unet=unet, torch_dtype=torch.float16, variant="fp16")
+            pipeline.enable_model_cpu_offload()
 
         # Inference and saving loop
         video_frames = pipeline(
@@ -77,7 +80,9 @@ class SVDTemporalControlnet:
             fps=fps_id,
             noise_aug_strength = noise_aug_strength,
             controlnet_cond_scale=controlnet_cond_scale, 
-            num_inference_steps=steps
+            num_inference_steps=steps,
+            min_guidance_scale = min_guidance_scale,
+            max_guidance_scale = max_guidance_scale
             ).frames
         # Create an instance of the ToTensor transform
         to_tensor = ToTensor()
