@@ -1,8 +1,2 @@
 diffusers
 transformers
-accelerate
-einops
-opencv-python
-decord
-imageio
-xformers
