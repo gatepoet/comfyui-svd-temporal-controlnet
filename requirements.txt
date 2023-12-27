@@ -1,2 +1,2 @@
 diffusers
-transformers
+transformers>=4.36.0
