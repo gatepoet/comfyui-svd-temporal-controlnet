@@ -88,7 +88,7 @@ class SVDTemporalControlnet:
         # Permute the tensor to the desired shape [B, H, W, C]
         image_tensors = image_tensors.permute(0, 2, 3, 1)
         
-        return (image_tensors, image_tensors[-1])
+        return (image_tensors, image_tensors[-1].unsqueeze(0),)
 
 
 NODE_CLASS_MAPPINGS = {
