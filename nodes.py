@@ -8,7 +8,7 @@ from .models.unet_spatio_temporal_condition_controlnet import UNetSpatioTemporal
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
 
-class SVDTemporalControlnetDepth:
+class SVDTemporalControlnet:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": { 
@@ -92,8 +92,8 @@ class SVDTemporalControlnetDepth:
 
 
 NODE_CLASS_MAPPINGS = {
-    "SVDTemporalControlnetDepth": SVDTemporalControlnetDepth,
+    "SVDTemporalControlnet": SVDTemporalControlnet,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SVDTemporalControlnetDepth": "SVDTemporalControlnetDepth",
+    "SVDTemporalControlnet": "SVDTemporalControlnet",
 }
