@@ -6,6 +6,8 @@ from .pipeline.pipeline_stable_video_diffusion_controlnet import StableVideoDiff
 from .models.controlnet_sdv import ControlNetSDVModel
 from .models.unet_spatio_temporal_condition_controlnet import UNetSpatioTemporalConditionControlNetModel
 
+import comfy.model_management
+
 script_directory = os.path.dirname(os.path.abspath(__file__))
 
 class SVDTemporalControlnet:
@@ -34,6 +36,9 @@ class SVDTemporalControlnet:
     CATEGORY = "SVDTemporalControlnet"
 
     def process(self, init_image, control_frames, width, height, seed, steps, min_guidance_scale, max_guidance_scale, motion_bucket_id, fps_id, noise_aug_strength, controlnet_cond_scale):
+        
+        comfy.model_management.unload_all_models()
+        
         torch.manual_seed(seed)
         num_frames = control_frames.shape[0]
         init_image = init_image.permute(0, 3, 1, 2)  # Rearrange the tensor from [B, H, W, C] to [B, C, H, W]
