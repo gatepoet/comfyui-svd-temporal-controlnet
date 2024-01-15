@@ -6,6 +6,8 @@ from .pipeline.pipeline_stable_video_diffusion_controlnet import StableVideoDiff
 from .models.controlnet_sdv import ControlNetSDVModel
 from .models.unet_spatio_temporal_condition_controlnet import UNetSpatioTemporalConditionControlNetModel
 
+import comfy.model_management
+
 script_directory = os.path.dirname(os.path.abspath(__file__))
 
 class SVDTemporalControlnet:
@@ -24,6 +26,13 @@ class SVDTemporalControlnet:
             "fps_id": ("INT", {"default": 7, "min": 1, "max": 100, "step": 1}),
             "noise_aug_strength": ("FLOAT", {"default": 0.02, "min": 0.0, "max": 10.0, "step": 0.01}),
             "controlnet_cond_scale": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.01}),
+            "checkpoint": (
+            [   
+                'stable-video-diffusion-img2vid',
+                'stable-video-diffusion-img2vid-xt',
+            ], {
+               "default": 'DDIMScheduler'
+            }),
             },
             }
     
@@ -33,7 +42,10 @@ class SVDTemporalControlnet:
 
     CATEGORY = "SVDTemporalControlnet"
 
-    def process(self, init_image, control_frames, width, height, seed, steps, min_guidance_scale, max_guidance_scale, motion_bucket_id, fps_id, noise_aug_strength, controlnet_cond_scale):
+    def process(self, init_image, control_frames, width, height, seed, steps, min_guidance_scale, max_guidance_scale, motion_bucket_id, fps_id, noise_aug_strength, controlnet_cond_scale, checkpoint):
+        
+        comfy.model_management.unload_all_models()
+
         torch.manual_seed(seed)
         num_frames = control_frames.shape[0]
         init_image = init_image.permute(0, 3, 1, 2)  # Rearrange the tensor from [B, H, W, C] to [B, C, H, W]
@@ -41,13 +53,14 @@ class SVDTemporalControlnet:
 
         if not hasattr(self, 'pipeline'):
             # Load SVD checkpoint
-            checkpoint_path = os.path.join(script_directory, "../../models/diffusers/stable-video-diffusion-img2vid")
+            checkpoint_path = os.path.join(script_directory, f"../../models/diffusers/{checkpoint}")
+
             if os.path.exists(checkpoint_path):
                 checkpoint_path = checkpoint_path
             else:
                 try:
                     from huggingface_hub import snapshot_download
-                    snapshot_download(repo_id="stabilityai/stable-video-diffusion-img2vid", allow_patterns=["*.json","*fp16*"], local_dir=checkpoint_path, local_dir_use_symlinks=False)
+                    snapshot_download(repo_id=f"../../models/diffusers/{checkpoint}", allow_patterns=["*.json","*fp16*"], local_dir=checkpoint_path, local_dir_use_symlinks=False)
                 except:
                     raise FileNotFoundError("No SVD model found.")
                 
