@@ -33,6 +33,13 @@ class SVDTemporalControlnet:
             ], {
                "default": 'DDIMScheduler'
             }),
+            "controlnet": (
+            [   
+                'temporal-controlnet-lineart-svd-v1',
+                'temporal-controlnet-depth-svd-v1',
+            ], {
+               "default": 'DDIMScheduler'
+            }),
             },
             }
     
@@ -42,7 +49,7 @@ class SVDTemporalControlnet:
 
     CATEGORY = "SVDTemporalControlnet"
 
-    def process(self, init_image, control_frames, width, height, seed, steps, min_guidance_scale, max_guidance_scale, motion_bucket_id, fps_id, noise_aug_strength, controlnet_cond_scale, checkpoint):
+    def process(self, init_image, control_frames, width, height, seed, steps, min_guidance_scale, max_guidance_scale, motion_bucket_id, fps_id, noise_aug_strength, controlnet_cond_scale, checkpoint, controlnet):
         
         comfy.model_management.unload_all_models()
 
@@ -60,18 +67,18 @@ class SVDTemporalControlnet:
             else:
                 try:
                     from huggingface_hub import snapshot_download
-                    snapshot_download(repo_id=f"../../models/diffusers/{checkpoint}", allow_patterns=["*.json","*fp16*"], local_dir=checkpoint_path, local_dir_use_symlinks=False)
+                    snapshot_download(repo_id=f"stabilityai/{checkpoint}", allow_patterns=["*.json","*fp16*"], local_dir=checkpoint_path, local_dir_use_symlinks=False)
                 except:
                     raise FileNotFoundError("No SVD model found.")
                 
             # Load ControlNet checkpoint
-            controlnet_path = os.path.join(script_directory, "../../models/diffusers/temporal-controlnet-depth-svd-v1")   
+            controlnet_path = os.path.join(script_directory, f"../../models/diffusers/{controlnet}")   
             if os.path.exists(controlnet_path):
                 controlnet_path = controlnet_path
             else:
                 try:
                     from huggingface_hub import snapshot_download
-                    snapshot_download(repo_id="CiaraRowles/temporal-controlnet-depth-svd-v1", local_dir=controlnet_path, local_dir_use_symlinks=False)
+                    snapshot_download(repo_id=f"CiaraRowles/{controlnet}", local_dir=controlnet_path, local_dir_use_symlinks=False)
                 except:
                     raise FileNotFoundError("No controlnet model found.")
             
