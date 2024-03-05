@@ -1,0 +1,16 @@
+on:
+  pull_request:
+  merge_group:
+    
+jobs:
+  find-conflicts:
+    name: Merge Conflict Finder
+    # You may pin to the exact commit or the version.
+    # uses: olivernybroe/action-conflict-finder@78f7add155e0bf97e9c71cb0383ef5691f72868c
+    uses: olivernybroe/action-conflict-finder@v4.0
+    # with:
+      # Glob of directories to exclude from check
+      # exclude_dir: # optional, default is node_modules,vendor
+      # Glob of files to exclude from check, supports wildcards
+      # excludes: # optional, default is 
+            
