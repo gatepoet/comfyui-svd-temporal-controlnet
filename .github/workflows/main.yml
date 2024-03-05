@@ -5,9 +5,12 @@ on:
 jobs:
   find-conflicts:
     name: Merge Conflict Finder
+
+    runs-on: ubuntu-latest
     # You may pin to the exact commit or the version.
     # uses: olivernybroe/action-conflict-finder@78f7add155e0bf97e9c71cb0383ef5691f72868c
-    uses: olivernybroe/action-conflict-finder@v4.0
+    steps:
+      - uses: olivernybroe/action-conflict-finder@v4.0
     # with:
       # Glob of directories to exclude from check
       # exclude_dir: # optional, default is node_modules,vendor
